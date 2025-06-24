@@ -16,7 +16,7 @@ def get_connection():
 
 @app.route('/')
 def index():
-    return render_template('test_nckh2025.html')
+    return render_template('doanvienthong.html')
 
 @app.route('/data')
 def data():
