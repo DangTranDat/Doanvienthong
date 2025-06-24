@@ -71,7 +71,7 @@ def upload_data():
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO doanvienthong (acc_total, angle, gyro_total, alert_text)
+            INSERT INTO doanvienthong_table (acc_total, angle, gyro_total, alert_text)
             VALUES (%s, %s, %s, %s)
         """, (acc_total, angle, gyro_total, alert_text))
         conn.commit()
