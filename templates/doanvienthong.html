@@ -9,34 +9,50 @@
             background-color: #f4f6f8;
             padding: 20px;
         }
+
         h1 {
             color: #333;
         }
+
+        #alert-box {
+            background-color: #ffcccc;
+            border: 2px solid red;
+            color: red;
+            font-weight: bold;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none; /* Ẩn mặc định */
+        }
+
         table {
             width: 100%;
             max-width: 1000px;
             border-collapse: collapse;
-            margin-top: 20px;
             background-color: white;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
+
         th, td {
             border: 1px solid #ccc;
             padding: 12px;
             text-align: center;
         }
+
         th {
             background-color: #007bff;
             color: white;
         }
-        .alert {
+
+        .alert-text {
             color: red;
             font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <h1>Thông số giám sát thời gian thực</h1>
+    <h1>Giám sát xe và cảnh báo</h1>
+
+    <div id="alert-box">Không có cảnh báo</div>
 
     <table id="data-table">
         <thead>
@@ -49,7 +65,7 @@
             </tr>
         </thead>
         <tbody id="table-body">
-            <!-- Dữ liệu sẽ được cập nhật tại đây bằng JS -->
+            <!-- Dữ liệu được thêm bằng JavaScript -->
         </tbody>
     </table>
 
@@ -58,34 +74,49 @@
             try {
                 const response = await fetch('/data');
                 const json = await response.json();
-
                 const tableBody = document.getElementById('table-body');
-                tableBody.innerHTML = ''; // Xóa dữ liệu cũ
+                const alertBox = document.getElementById('alert-box');
+
+                tableBody.innerHTML = '';
+
+                let latestAlert = '';
 
                 json.records.forEach(record => {
                     const row = document.createElement('tr');
+
+                    const hasAlert = record.alert_text && record.alert_text.trim() !== '';
+
+                    if (hasAlert && latestAlert === '') {
+                        latestAlert = record.alert_text;
+                    }
 
                     row.innerHTML = `
                         <td>${record.recorded_at}</td>
                         <td>${record.acc_total.toFixed(2)}</td>
                         <td>${record.angle.toFixed(2)}</td>
                         <td>${record.gyro_total.toFixed(2)}</td>
-                        <td class="${record.alert_text ? 'alert' : ''}">
-                            ${record.alert_text || 'Không có'}
+                        <td class="${hasAlert ? 'alert-text' : ''}">
+                            ${hasAlert ? record.alert_text : 'Không có'}
                         </td>
                     `;
 
                     tableBody.appendChild(row);
                 });
+
+                // Cập nhật vùng cảnh báo riêng
+                if (latestAlert !== '') {
+                    alertBox.style.display = 'block';
+                    alertBox.textContent = "⚠️ CẢNH BÁO: " + latestAlert;
+                } else {
+                    alertBox.style.display = 'none';
+                }
+
             } catch (error) {
                 console.error('Lỗi khi lấy dữ liệu:', error);
             }
         }
 
-        // Tải dữ liệu ngay khi trang load
         fetchData();
-
-        // Cập nhật mỗi 5 giây
         setInterval(fetchData, 5000);
     </script>
 </body>
