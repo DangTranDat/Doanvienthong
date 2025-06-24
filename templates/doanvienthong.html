@@ -3,22 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <title>Giám sát thông số và cảnh báo</title>
-    <meta http-equiv="refresh" content="5"> <!-- Tự động làm mới mỗi 5 giây -->
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f0f2f5;
+            background-color: #f4f6f8;
             padding: 20px;
         }
         h1 {
             color: #333;
         }
         table {
-            width: 60%;
+            width: 100%;
+            max-width: 1000px;
             border-collapse: collapse;
             margin-top: 20px;
             background-color: white;
-            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
         th, td {
             border: 1px solid #ccc;
@@ -36,9 +36,9 @@
     </style>
 </head>
 <body>
-    <h1>Thông số giám sát</h1>
+    <h1>Thông số giám sát thời gian thực</h1>
 
-    <table>
+    <table id="data-table">
         <thead>
             <tr>
                 <th>Thời gian</th>
@@ -48,20 +48,45 @@
                 <th>Cảnh báo</th>
             </tr>
         </thead>
-        <tbody>
-            {% for row in records %}
-            <tr>
-                <td>{{ row.time }}</td>
-                <td>{{ row.acc_total }}</td>
-                <td>{{ row.angle }}</td>
-                <td>{{ row.gyro_total }}</td>
-                <td class="{% if row.alert_text %}alert{% endif %}">
-                    {{ row.alert_text if row.alert_text else 'Không có' }}
-                </td>
-            </tr>
-            {% endfor %}
+        <tbody id="table-body">
+            <!-- Dữ liệu sẽ được cập nhật tại đây bằng JS -->
         </tbody>
     </table>
+
+    <script>
+        async function fetchData() {
+            try {
+                const response = await fetch('/data');
+                const json = await response.json();
+
+                const tableBody = document.getElementById('table-body');
+                tableBody.innerHTML = ''; // Xóa dữ liệu cũ
+
+                json.records.forEach(record => {
+                    const row = document.createElement('tr');
+
+                    row.innerHTML = `
+                        <td>${record.recorded_at}</td>
+                        <td>${record.acc_total.toFixed(2)}</td>
+                        <td>${record.angle.toFixed(2)}</td>
+                        <td>${record.gyro_total.toFixed(2)}</td>
+                        <td class="${record.alert_text ? 'alert' : ''}">
+                            ${record.alert_text || 'Không có'}
+                        </td>
+                    `;
+
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Lỗi khi lấy dữ liệu:', error);
+            }
+        }
+
+        // Tải dữ liệu ngay khi trang load
+        fetchData();
+
+        // Cập nhật mỗi 5 giây
+        setInterval(fetchData, 5000);
+    </script>
 </body>
 </html>
-
