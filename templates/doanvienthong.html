@@ -65,7 +65,7 @@
             </tr>
         </thead>
         <tbody id="table-body">
-            <!-- Dữ liệu được thêm bằng JavaScript -->
+            <!-- Dữ liệu sẽ được cập nhật ở đây -->
         </tbody>
     </table>
 
@@ -79,16 +79,12 @@
 
                 tableBody.innerHTML = '';
 
-                let latestAlert = '';
+                const records = json.records;
+                const latestRecord = records[records.length - 1]; // Bản ghi mới nhất (cuối danh sách)
 
-                json.records.forEach(record => {
+                records.forEach(record => {
                     const row = document.createElement('tr');
-
                     const hasAlert = record.alert_text && record.alert_text.trim() !== '';
-
-                    if (hasAlert && latestAlert === '') {
-                        latestAlert = record.alert_text;
-                    }
 
                     row.innerHTML = `
                         <td>${record.recorded_at}</td>
@@ -99,14 +95,13 @@
                             ${hasAlert ? record.alert_text : 'Không có'}
                         </td>
                     `;
-
                     tableBody.appendChild(row);
                 });
 
-                // Cập nhật vùng cảnh báo riêng
-                if (latestAlert !== '') {
+                // Hiển thị cảnh báo nếu bản ghi cuối có alert_text
+                if (latestRecord && latestRecord.alert_text && latestRecord.alert_text.trim() !== '') {
                     alertBox.style.display = 'block';
-                    alertBox.textContent = "⚠️ CẢNH BÁO: " + latestAlert;
+                    alertBox.textContent = "⚠️ CẢNH BÁO: " + latestRecord.alert_text;
                 } else {
                     alertBox.style.display = 'none';
                 }
