@@ -1,1 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Giám sát thông số và cảnh báo</title>
+    <meta http-equiv="refresh" content="5"> <!-- Tự động làm mới mỗi 5 giây -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        table {
+            width: 60%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: white;
+            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 12px;
+            text-align: center;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        .alert {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Thông số giám sát</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Thời gian</th>
+                <th>Gia tốc tổng (acc_total)</th>
+                <th>Góc nghiêng (angle)</th>
+                <th>Gyro tổng (gyro_total)</th>
+                <th>Cảnh báo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in records %}
+            <tr>
+                <td>{{ row.time }}</td>
+                <td>{{ row.acc_total }}</td>
+                <td>{{ row.angle }}</td>
+                <td>{{ row.gyro_total }}</td>
+                <td class="{% if row.alert_text %}alert{% endif %}">
+                    {{ row.alert_text if row.alert_text else 'Không có' }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
 
