@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Hệ thống cảnh báo sớm lũ lụt và sạt lở đất</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f4f9ff;
+        }
+        h2 {
+            text-align: center;
+            color: #003366;
+        }
+        .chart-container {
+            width: 100%;
+            max-width: 900px;
+            margin: 40px auto;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 0 10px #ccc;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Hệ thống giám sát và cảnh báo sớm lũ lụt - sạt lở</h2>
+
+    <div class="chart-container">
+        <canvas id="tempHumChart"></canvas>
+    </div>
+    <div class="chart-container">
+        <canvas id="waterLevelChart"></canvas>
+    </div>
+    <div class="chart-container">
+        <canvas id="pressureAltitudeChart"></canvas>
+    </div>
+    <div class="chart-container">
+        <canvas id="accelerationChart"></canvas>
+    </div>
+    <div class="chart-container">
+        <canvas id="rainVibrationChart"></canvas>
+    </div>
+
+    <script>
+        fetch('/data')
+            .then(response => response.json())
+            .then(data => {
+                const labels = data.timestamps;
+
+                // Nhiệt độ và độ ẩm
+                new Chart(document.getElementById('tempHumChart'), {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Nhiệt độ (°C)',
+                                data: data.temperatures,
+                                borderColor: 'red',
+                                fill: false
+                            },
+                            {
+                                label: 'Độ ẩm (%)',
+                                data: data.humidities,
+                                borderColor: 'blue',
+                                fill: false
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Nhiệt độ và độ ẩm môi trường'
+                            }
+                        }
+                    }
+                });
+
+                // Mực nước
+                new Chart(document.getElementById('waterLevelChart'), {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Mực nước (cm)',
+                                data: data.water_levels,
+                                borderColor: 'teal',
+                                fill: false
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Theo dõi mực nước để phát hiện nguy cơ lũ'
+                            }
+                        }
+                    }
+                });
+
+                // Áp suất và độ cao
+                new Chart(document.getElementById('pressureAltitudeChart'), {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Áp suất (hPa)',
+                                data: data.pressures,
+                                borderColor: 'orange',
+                                fill: false
+                            },
+                            {
+                                label: 'Độ cao (m)',
+                                data: data.altitudes,
+                                borderColor: 'green',
+                                fill: false
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Áp suất khí quyển và độ cao'
+                            }
+                        }
+                    }
+                });
+
+                // Gia tốc (Gyroscope)
+                new Chart(document.getElementById('accelerationChart'), {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Gyro X',
+                                data: data.gyro_xs,
+                                borderColor: 'purple',
+                                fill: false
+                            },
+                            {
+                                label: 'Gyro Y',
+                                data: data.gyro_ys,
+                                borderColor: 'blue',
+                                fill: false
+                            },
+                            {
+                                label: 'Gyro Z',
+                                data: data.gyro_zs,
+                                borderColor: 'red',
+                                fill: false
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Gia tốc theo 3 trục (phát hiện rung chuyển đất đá)'
+                            }
+                        }
+                    }
+                });
+
+                // Mưa & Rung chuyển
+                new Chart(document.getElementById('rainVibrationChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Mưa (1 = Có mưa)',
+                                data: data.rains,
+                                backgroundColor: 'skyblue'
+                            },
+                            {
+                                label: 'Rung chuyển (1 = Có rung)',
+                                data: data.vibrations,
+                                backgroundColor: 'salmon'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Trạng thái mưa và rung chuyển đất'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+    </script>
+</body>
+</html>
