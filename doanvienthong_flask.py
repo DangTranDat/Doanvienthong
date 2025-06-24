@@ -18,41 +18,40 @@ def get_connection():
 def index():
     return render_template('doanvienthong.html')
 
-# @app.route('/data')
-# def data():
-#     try:
-#         conn = get_connection()
-#         cursor = conn.cursor()
-#         cursor.execute("""
-#             SELECT timestamp, temperature, humidity, water_level, rain_level,
-#                    soil_moisture, pressure, vibration, gyro_x, gyro_y, gyro_z,canhbao
-#             FROM nckh2025
-#             ORDER BY timestamp DESC
-#             LIMIT 20
-#         """)
-#         rows = cursor.fetchall()
-#         cursor.close()
-#         conn.close()
+@app.route('/data')
+def data():
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT recorded_at, acc_total, angle, gyro_total, alert_text
+            FROM doanvienthong_table
+            ORDER BY recorded_at DESC
+            LIMIT 20
+        """)
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
 
-#         rows = rows[::-1]  # đảo ngược thời gian tăng dần
-#         return jsonify({
-#             'timestamps': [r[0].strftime("%H:%M:%S") for r in rows],
-#             'temperatures': [r[1] for r in rows],
-#             'humidities': [r[2] for r in rows],
-#             'water_levels': [r[3] for r in rows],
-#             'rains_level': [r[4] for r in rows],
-#             'soil_moistures': [r[5] for r in rows],
-#             'pressures': [r[6] for r in rows],
-#             'vibrations': [r[7] for r in rows],
-#             'gyro_xs': [r[8] for r in rows],
-#             'gyro_ys': [r[9] for r in rows],
-#             'gyro_zs': [r[10] for r in rows],
-#             'canhbao': [r[11] for r in rows],
-#         })
+        # Đảo ngược danh sách để hiển thị theo thời gian tăng dần
+        rows = rows[::-1]
 
-#     except Exception as e:
-#         print("Lỗi trong /data:", e)
-#         return jsonify({'error': str(e)}), 500
+        # Chuyển đổi dữ liệu thành dạng JSON
+        data = []
+        for row in rows:
+            data.append({
+                'recorded_at': row[0].strftime('%Y-%m-%d %H:%M:%S'),
+                'acc_total': row[1],
+                'angle': row[2],
+                'gyro_total': row[3],
+                'alert_text': row[4] or ''
+            })
+
+        return jsonify({'records': data})
+
+    except Exception as e:
+        print("Lỗi trong /data:", e)
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/upload', methods=['POST'])
