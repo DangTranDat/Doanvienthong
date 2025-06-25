@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Giám sát thông số và cảnh báo</title>
+    <title>Giám sát xe và cảnh báo</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -21,7 +21,22 @@
             font-weight: bold;
             padding: 15px;
             margin-bottom: 20px;
-            display: none; /* Ẩn mặc định */
+            display: none;
+        }
+
+        #toggle-btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #toggle-btn.off {
+            background-color: #dc3545;
         }
 
         table {
@@ -51,11 +66,8 @@
 </head>
 <body>
     <h1>Giám sát xe và cảnh báo</h1>
-    <!-- ✅ Thêm nút bật chống trộm ở đây -->
-    <button onclick="enableAntiTheft()" style="margin-bottom: 20px; padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; font-weight: bold;">
-        🔒 Bật chống trộm
-    </button>
 
+    <button id="toggle-btn">Bật chức năng chống trộm</button>
     <div id="alert-box">Không có cảnh báo</div>
 
     <table id="data-table">
@@ -69,11 +81,13 @@
             </tr>
         </thead>
         <tbody id="table-body">
-            <!-- Dữ liệu sẽ được cập nhật ở đây -->
+            <!-- Dữ liệu sẽ được chèn vào đây -->
         </tbody>
     </table>
 
     <script>
+        let antiTheftEnabled = false;
+
         async function fetchData() {
             try {
                 const response = await fetch('/data');
@@ -84,7 +98,7 @@
                 tableBody.innerHTML = '';
 
                 const records = json.records;
-                const latestRecord = records[records.length - 1]; // Bản ghi mới nhất (cuối danh sách)
+                const latestRecord = records[records.length - 1];
 
                 records.forEach(record => {
                     const row = document.createElement('tr');
@@ -102,41 +116,66 @@
                     tableBody.appendChild(row);
                 });
 
-                // Hiển thị cảnh báo nếu bản ghi cuối có alert_text
                 if (latestRecord && latestRecord.alert_text && latestRecord.alert_text.trim() !== '') {
                     alertBox.style.display = 'block';
                     alertBox.textContent = "⚠️ CẢNH BÁO: " + latestRecord.alert_text;
                 } else {
                     alertBox.style.display = 'none';
                 }
-
             } catch (error) {
                 console.error('Lỗi khi lấy dữ liệu:', error);
             }
         }
 
+        async function toggleAntiTheft() {
+            antiTheftEnabled = !antiTheftEnabled;
+
+            try {
+                const response = await fetch('/toggle-anti-theft', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: antiTheftEnabled })
+                });
+                const result = await response.json();
+
+                if (result.status === 'ok') {
+                    updateToggleButton();
+                } else {
+                    console.error("Không thể bật/tắt chống trộm");
+                }
+            } catch (error) {
+                console.error("Lỗi khi gửi yêu cầu bật/tắt:", error);
+            }
+        }
+
+        function updateToggleButton() {
+            const btn = document.getElementById('toggle-btn');
+            if (antiTheftEnabled) {
+                btn.textContent = 'Tắt chức năng chống trộm';
+                btn.classList.add('off');
+            } else {
+                btn.textContent = 'Bật chức năng chống trộm';
+                btn.classList.remove('off');
+            }
+        }
+
+        document.getElementById('toggle-btn').addEventListener('click', toggleAntiTheft);
+
+        // Lấy trạng thái ban đầu từ server
+        async function fetchInitialStatus() {
+            try {
+                const res = await fetch('/status');
+                const data = await res.json();
+                antiTheftEnabled = data.anti_theft_enabled;
+                updateToggleButton();
+            } catch (error) {
+                console.error("Không thể lấy trạng thái chống trộm ban đầu:", error);
+            }
+        }
+
+        fetchInitialStatus();
         fetchData();
         setInterval(fetchData, 5000);
-        
-
-         // ✅ Hàm gọi API bật chống trộm
-        function enableAntiTheft() {
-            fetch('/enable_antitheft', {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.distance_km !== undefined) {
-                    alert("📍 Vị trí đã thay đổi\nKhoảng cách từ vị trí trước: " + data.distance_km + " km");
-                    console.log("Chi tiết:", data);
-                } else {
-                    alert("Không thể tính khoảng cách: " + data.error);
-                }
-            })
-            .catch(err => {
-                alert("Lỗi kết nối đến máy chủ: " + err);
-            });
-        }
     </script>
 </body>
 </html>
