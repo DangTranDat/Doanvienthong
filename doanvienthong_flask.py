@@ -3,6 +3,7 @@ import psycopg2
 import os
 from datetime import datetime
 import random
+from math import radians, cos, sin, asin, sqrt
 
 app = Flask(__name__)
 
@@ -33,6 +34,27 @@ def get_connection():
         dbname=os.environ.get('DB_NAME'),
         port=os.environ.get('DB_PORT', 5432)
     )
+
+
+def haversine(lat1, lon1, lat2, lon2):
+    """
+    Tính khoảng cách giữa hai điểm (lat1, lon1) và (lat2, lon2) theo km
+    """
+    R = 6371  # Bán kính Trái Đất tính theo km
+
+    # Chuyển sang radian
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+
+    # Hiệu giữa các kinh/vĩ độ
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+
+    # Áp dụng công thức Haversine
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+
+    return R * c  # khoảng cách theo km
+
 
 @app.route('/')
 def index():
@@ -107,6 +129,48 @@ def upload_data():
     except Exception as e:
         print("Lỗi khi ghi dữ liệu:", e)
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/enable_antitheft', methods=['POST'])
+def enable_antitheft():
+    try:
+        # 1. Lấy dữ liệu mới nhất từ DB (tọa độ trước khi bật)
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT latitude, longitude
+            FROM doanvienthong_table
+            WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+            ORDER BY recorded_at DESC
+            LIMIT 1
+        """)
+        last_point = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not last_point:
+            return jsonify({'error': 'Không có dữ liệu tọa độ trong DB'}), 404
+
+        lat1, lon1 = last_point
+
+        # 2. Tạo một tọa độ mới random trong vùng tọa độ
+        latitude = random.uniform(min_lat, max_lat)
+        longitude = random.uniform(min_lng, max_lng)
+
+        # 3. Tính khoảng cách bằng Haversine
+        distance_km = haversine(lat1, lon1, latitude, longitude)
+
+        # 4. Trả về kết quả
+        return jsonify({
+            'original_location': {'lat': lat1, 'lng': lon1},
+            'new_location': {'lat': latitude, 'lng': longitude},
+            'distance_km': round(distance_km, 4)
+        })
+
+    except Exception as e:
+        print("Lỗi trong enable_antitheft:", e)
+        return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=10000)
