@@ -7,7 +7,7 @@ from math import radians, cos, sin, asin, sqrt
 
 app = Flask(__name__)
 
-# Danh sách các tọa độ mẫu
+# ========= CẤU HÌNH =========
 coordinates = [
     (21.006304796620064, 105.82409382625556),
     (21.00618460687564, 105.82404018207737),
@@ -18,14 +18,16 @@ coordinates = [
     (21.00637741121041, 105.8245980815306),
     (21.006242197806916, 105.82439423365345)
 ]
-
-# Tính min/max của từng phần
-latitudes = [coord[0] for coord in coordinates]
-longitudes = [coord[1] for coord in coordinates]
-
+latitudes = [c[0] for c in coordinates]
+longitudes = [c[1] for c in coordinates]
 min_lat, max_lat = min(latitudes), max(latitudes)
 min_lng, max_lng = min(longitudes), max(longitudes)
 
+# ========= TRẠNG THÁI CHỐNG TRỘM =========
+anti_theft_enabled = False
+reference_position = None
+
+# ========= HÀM TIỆN ÍCH =========
 def get_connection():
     return psycopg2.connect(
         host=os.environ.get('DB_HOST'),
@@ -35,33 +37,23 @@ def get_connection():
         port=os.environ.get('DB_PORT', 5432)
     )
 
-
 def haversine(lat1, lon1, lat2, lon2):
-    """
-    Tính khoảng cách giữa hai điểm (lat1, lon1) và (lat2, lon2) theo km
-    """
-    R = 6371  # Bán kính Trái Đất tính theo km
-
-    # Chuyển sang radian
+    R = 6371
     lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-
-    # Hiệu giữa các kinh/vĩ độ
     dlat = lat2 - lat1
     dlon = lon2 - lon1
-
-    # Áp dụng công thức Haversine
     a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-    c = 2 * asin(sqrt(a))
+    return R * 2 * asin(sqrt(a))
 
-    return R * c  # khoảng cách theo km
-
-
+# ========= ROUTE HTML =========
 @app.route('/')
 def index():
     return render_template('doanvienthong.html')
 
+# ========= ROUTE LẤY DỮ LIỆU =========
 @app.route('/data')
 def data():
+    global anti_theft_enabled, reference_position
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -75,13 +67,11 @@ def data():
         cursor.close()
         conn.close()
 
-        # Đảo ngược danh sách để hiển thị theo thời gian tăng dần
-        rows = rows[::-1]
+        rows = rows[::-1]  # tăng dần thời gian
 
-        # Chuyển đổi dữ liệu thành dạng JSON
         data = []
         for row in rows:
-            data.append({
+            record = {
                 'recorded_at': row[0].strftime('%Y-%m-%d %H:%M:%S'),
                 'acc_total': row[1],
                 'angle': row[2],
@@ -89,7 +79,17 @@ def data():
                 'alert_text': row[4] or '',
                 'latitude': row[5],
                 'longitude': row[6]
-            })
+            }
+
+            if anti_theft_enabled and reference_position:
+                lat0, lon0 = reference_position
+                lat1, lon1 = row[5], row[6]
+                distance = haversine(lat0, lon0, lat1, lon1)
+                record['distance_from_ref'] = round(distance, 4)
+            else:
+                record['distance_from_ref'] = None
+
+            data.append(record)
 
         return jsonify({'records': data})
 
@@ -97,23 +97,19 @@ def data():
         print("Lỗi trong /data:", e)
         return jsonify({'error': str(e)}), 500
 
-
+# ========= ROUTE NHẬN DỮ LIỆU =========
 @app.route('/upload', methods=['POST'])
 def upload_data():
     try:
         data = request.json
-        print("Dữ liệu nhận từ Gateway:", data)
-
-        #Lấy dữ liệu từ JSON
         acc_total = data.get('acc_total')
         angle = data.get('angle')
         gyro_total = data.get('gyro_total')
         alert_text = data.get('alert_text')
-         # Chọn ngẫu nhiên một tọa độ
+
         latitude = random.uniform(min_lat, max_lat)
         longitude = random.uniform(min_lng, max_lng)
 
-        #Ghi vào cơ sở dữ liệu
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("""
@@ -130,11 +126,11 @@ def upload_data():
         print("Lỗi khi ghi dữ liệu:", e)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-
+# ========= BẬT CHỐNG TRỘM =========
 @app.route('/enable_antitheft', methods=['POST'])
 def enable_antitheft():
+    global anti_theft_enabled, reference_position
     try:
-        # 1. Lấy dữ liệu mới nhất từ DB (tọa độ trước khi bật)
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("""
@@ -144,33 +140,33 @@ def enable_antitheft():
             ORDER BY recorded_at DESC
             LIMIT 1
         """)
-        last_point = cursor.fetchone()
+        result = cursor.fetchone()
         cursor.close()
         conn.close()
 
-        if not last_point:
-            return jsonify({'error': 'Không có dữ liệu tọa độ trong DB'}), 404
+        if not result:
+            return jsonify({'error': 'Không tìm thấy tọa độ để làm mốc'}), 404
 
-        lat1, lon1 = last_point
+        reference_position = result
+        anti_theft_enabled = True
 
-        # 2. Tạo một tọa độ mới random trong vùng tọa độ
-        latitude = random.uniform(min_lat, max_lat)
-        longitude = random.uniform(min_lng, max_lng)
-
-        # 3. Tính khoảng cách bằng Haversine
-        distance_km = haversine(lat1, lon1, latitude, longitude)
-
-        # 4. Trả về kết quả
-        return jsonify({
-            'original_location': {'lat': lat1, 'lng': lon1},
-            'new_location': {'lat': latitude, 'lng': longitude},
-            'distance_km': round(distance_km, 4)
-        })
+        return jsonify({'status': 'started', 'reference': {
+            'lat': reference_position[0],
+            'lng': reference_position[1]
+        }})
 
     except Exception as e:
         print("Lỗi trong enable_antitheft:", e)
         return jsonify({'error': str(e)}), 500
 
+# ========= TẮT CHỐNG TRỘM =========
+@app.route('/disable_antitheft', methods=['POST'])
+def disable_antitheft():
+    global anti_theft_enabled, reference_position
+    anti_theft_enabled = False
+    reference_position = None
+    return jsonify({'status': 'stopped'})
 
+# ========= KHỞI CHẠY =========
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=10000)
