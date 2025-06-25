@@ -52,10 +52,12 @@
 <body>
     <h1>Giám sát xe và cảnh báo</h1>
     <!-- ✅ Thêm nút bật chống trộm ở đây -->
-    <button onclick="enableAntiTheft()" style="margin-bottom: 20px; padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; font-weight: bold;">
+<!--     <button onclick="enableAntiTheft()" style="margin-bottom: 20px; padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; font-weight: bold;">
         🔒 Bật chống trộm
+    </button> -->
+    <button id="antitheft-btn" onclick="toggleAntiTheft()" style="margin-bottom: 20px; padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; font-weight: bold;">
+    🔒 Bật chống trộm
     </button>
-
     <div id="alert-box">Không có cảnh báo</div>
 
     <table id="data-table">
@@ -119,23 +121,58 @@
         setInterval(fetchData, 5000);
         
 
-         // ✅ Hàm gọi API bật chống trộm
-        function enableAntiTheft() {
-            fetch('/enable_antitheft', {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.distance_km !== undefined) {
-                    alert("📍 Vị trí đã thay đổi\nKhoảng cách từ vị trí trước: " + data.distance_km + " km");
-                    console.log("Chi tiết:", data);
-                } else {
-                    alert("Không thể tính khoảng cách: " + data.error);
-                }
-            })
-            .catch(err => {
-                alert("Lỗi kết nối đến máy chủ: " + err);
-            });
+        //  // ✅ Hàm gọi API bật chống trộm
+        // function enableAntiTheft() {
+        //     fetch('/enable_antitheft', {
+        //         method: 'POST'
+        //     })
+        //     .then(response => response.json())
+        //     .then(data => {
+        //         if (data.distance_km !== undefined) {
+        //             alert("📍 Vị trí đã thay đổi\nKhoảng cách từ vị trí trước: " + data.distance_km + " km");
+        //             console.log("Chi tiết:", data);
+        //         } else {
+        //             alert("Không thể tính khoảng cách: " + data.error);
+        //         }
+        //     })
+        //     .catch(err => {
+        //         alert("Lỗi kết nối đến máy chủ: " + err);
+        //     });
+        // }
+        let antiTheftEnabled = false;
+
+        function toggleAntiTheft() {
+            const button = document.getElementById('antitheft-btn');
+            const url = antiTheftEnabled ? '/disable_antitheft' : '/enable_antitheft';
+    
+            fetch(url, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (!antiTheftEnabled) {
+                        // Bật
+                        if (data.status === 'started') {
+                            alert("🔐 Chống trộm đã bật!\nĐang lấy mốc vị trí hiện tại...");
+                            button.textContent = "🔓 Tắt chống trộm";
+                            button.style.backgroundColor = '#dc3545'; // Màu đỏ khi đang bật
+                            antiTheftEnabled = true;
+                        } else {
+                            alert("Không thể bật chống trộm: " + data.error);
+                        }
+                    } else {
+                        // Tắt
+                        if (data.status === 'stopped') {
+                            alert("✅ Chống trộm đã tắt!");
+                            button.textContent = "🔒 Bật chống trộm";
+                            button.style.backgroundColor = '#28a745'; // Xanh khi đang tắt
+                            antiTheftEnabled = false;
+                        } else {
+                            alert("Không thể tắt chống trộm: " + data.error);
+                        }
+                    }
+                })
+                .catch(err => {
+                    alert("Lỗi kết nối đến máy chủ: " + err);
+                });
         }
     </script>
 </body>
