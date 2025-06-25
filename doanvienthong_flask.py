@@ -2,8 +2,21 @@ from flask import Flask, request, render_template, jsonify
 import psycopg2
 import os
 from datetime import datetime
+import random
 
 app = Flask(__name__)
+
+# Danh sách các tọa độ mẫu
+coordinates = [
+    (21.006304796620064, 105.82409382625556),
+    (21.00618460687564, 105.82404018207737),
+    (21.006011833948428, 105.82439423365345),
+    (21.00653265607812, 105.8246839122157),
+    (21.006602766610587, 105.82449883980094),
+    (21.006409962567016, 105.82439423365345),
+    (21.00637741121041, 105.8245980815306),
+    (21.006242197806916, 105.82439423365345)
+]
 
 def get_connection():
     return psycopg2.connect(
@@ -65,14 +78,16 @@ def upload_data():
         angle = data.get('angle')
         gyro_total = data.get('gyro_total')
         alert_text = data.get('alert_text')
+         # Chọn ngẫu nhiên một tọa độ
+        latitude, longitude = random.choice(coordinates)
 
         #Ghi vào cơ sở dữ liệu
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO doanvienthong_table (acc_total, angle, gyro_total, alert_text)
-            VALUES (%s, %s, %s, %s)
-        """, (acc_total, angle, gyro_total, alert_text))
+            INSERT INTO doanvienthong_table (acc_total, angle, gyro_total, alert_text, latitude, longitude)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (acc_total, angle, gyro_total, alert_text, latitude, longitude))
         conn.commit()
         cursor.close()
         conn.close()
