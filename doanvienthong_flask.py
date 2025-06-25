@@ -18,6 +18,13 @@ coordinates = [
     (21.006242197806916, 105.82439423365345)
 ]
 
+# Tính min/max của từng phần
+latitudes = [coord[0] for coord in coordinates]
+longitudes = [coord[1] for coord in coordinates]
+
+min_lat, max_lat = min(latitudes), max(latitudes)
+min_lng, max_lng = min(longitudes), max(longitudes)
+
 def get_connection():
     return psycopg2.connect(
         host=os.environ.get('DB_HOST'),
@@ -81,7 +88,8 @@ def upload_data():
         gyro_total = data.get('gyro_total')
         alert_text = data.get('alert_text')
          # Chọn ngẫu nhiên một tọa độ
-        latitude, longitude = random.choice(coordinates)
+        latitude = random.uniform(min_lat, max_lat)
+        longitude = random.uniform(min_lng, max_lng)
 
         #Ghi vào cơ sở dữ liệu
         conn = get_connection()
