@@ -51,6 +51,10 @@
 </head>
 <body>
     <h1>Giám sát xe và cảnh báo</h1>
+    <!-- ✅ Thêm nút bật chống trộm ở đây -->
+    <button onclick="enableAntiTheft()" style="margin-bottom: 20px; padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; font-weight: bold;">
+        🔒 Bật chống trộm
+    </button>
 
     <div id="alert-box">Không có cảnh báo</div>
 
@@ -113,6 +117,26 @@
 
         fetchData();
         setInterval(fetchData, 5000);
+        
+
+         // ✅ Hàm gọi API bật chống trộm
+        function enableAntiTheft() {
+            fetch('/enable_antitheft', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.distance_km !== undefined) {
+                    alert("📍 Vị trí đã thay đổi\nKhoảng cách từ vị trí trước: " + data.distance_km + " km");
+                    console.log("Chi tiết:", data);
+                } else {
+                    alert("Không thể tính khoảng cách: " + data.error);
+                }
+            })
+            .catch(err => {
+                alert("Lỗi kết nối đến máy chủ: " + err);
+            });
+        }
     </script>
 </body>
 </html>
