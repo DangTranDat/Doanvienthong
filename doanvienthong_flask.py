@@ -37,7 +37,7 @@ def data():
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT recorded_at, acc_total, angle, gyro_total, alert_text
+            SELECT recorded_at, acc_total, angle, gyro_total, alert_text, latitude, longitude
             FROM doanvienthong_table
             ORDER BY recorded_at DESC
             LIMIT 20
@@ -57,7 +57,9 @@ def data():
                 'acc_total': row[1],
                 'angle': row[2],
                 'gyro_total': row[3],
-                'alert_text': row[4] or ''
+                'alert_text': row[4] or '',
+                'latitude': row[5],
+                'longitude': row[6]
             })
 
         return jsonify({'records': data})
